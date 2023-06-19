@@ -183,4 +183,36 @@ const CompareFamilies: React.FC = () => {
     );
 };
 
+/* Pseudocode:
+var sorted = false;
+while(!sorted) {
+    let [isComparisonEvaluated, setIsComparisonEvaluated] = useState(false);
+    ...
+    while(!isComparisonEvaluated) {
+        // display family comparison
+        renderComparison(family1, family2);
+        timeout(500);
+    }
+    // handle comparison
+    // quicksort_step
+        // Takes in "current sorting state"
+        // Returns [newFamily1, newFamily2]
+    setFamily1(newFamily1);
+    setFamily2(newFamily2);
+    setIsComparisonEvaluated(true);
+}
+*/
+
+/*
+// Call useState for:
+// currSortState, family1, family2
+const handleClick = (isFamily1:boolean) => {
+    let [newSortState, newFamily1, newFamily2] = quicksort_step(currSortState, isFamily1);
+    setCurrSortState(newSortState);
+    setFamily1(newFamily1);
+    setFamily2(newFamily2);
+}
+// Render using family1, family2, and handleClick
+*/
+
 export default CompareFamilies;
