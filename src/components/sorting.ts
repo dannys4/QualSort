@@ -111,8 +111,8 @@ function quicksortStepLeft(sortState: SortState, isPivot: boolean): QuicksortRet
         let newSortState: SortState = { ...sortState, i: sortState.i + 1 };
         return { newSortState: newSortState, left: newSortState.pivIdx, right: newSortState.i };
     }
-    // Set sortState.j -= 1, sortState.phase = SortPhase.RIGHT in new obj
-    let newSortState: SortState = { ...sortState, j: sortState.j - 1, phase: SortPhase.RIGHT };
+    // Set sortState.phase = SortPhase.RIGHT in new obj
+    let newSortState: SortState = { ...sortState, j: sortState.j, phase: SortPhase.RIGHT };
     return { newSortState: newSortState, left: newSortState.pivIdx, right: newSortState.i };
 };
 

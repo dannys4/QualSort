@@ -15,7 +15,7 @@ const CompareFamilies: React.FC = () => {
         const quickStep = quicksortStep(sortState, isFamily1);
         storeSortState(quickStep);
         const newSortState = quickStep.newSortState;
-        if(newSortState.phase === SortPhase.DONE) {
+        if(newSortState.phase === SortPhase.DONE || quickStep.left < 0 || quickStep.right < 0) {
             setDone(true);
             return
         }
@@ -41,10 +41,9 @@ const CompareFamilies: React.FC = () => {
             </Paper>
         );
     };
-    if (isDone) {
-        return <Paper>You finished!</Paper>;
-    }
-    return (
+    return isDone ?
+        <Paper> You Finished! </Paper> :
+    (
         <div>
             <Typography variant="h5">Compare Families</Typography>
 
