@@ -10,7 +10,7 @@ export type SortState = {
     i: number; // Left index
     j: number; // Right index
     pivIdx: number; // Pivot index
-    pivStack: number[]; // Stack of elements for calculating pivots/ lo and hi
+    pivStack: [number,number][]; // Stack of elements for calculating pivots/ lo and hi
     sortArray: number[]; // Partially sorted array
     phase: SortPhase; // Phase of sorting
 };
@@ -28,11 +28,11 @@ export type QuicksortRet = {
 }
 
 
-export function initializeSort(currID:number): QuicksortRet {
-    const [lo, hi, i, j] = [0, currID-1, 0, currID-1];
+export function initializeSort(length:number): QuicksortRet {
+    const [lo, hi, i, j] = [0, length-1, 0, length];
     const pivIdx = Math.floor((hi-lo)/2)+lo;
-    const sortArray = Array.from({length: currID}, (_,j) => j);
-    const sortState:SortState = {lo: lo, hi: hi, i: i, j: j, pivIdx: pivIdx, pivStack: Array<number>(), sortArray: sortArray, phase:SortPhase.LEFT };
+    const sortArray = Array.from({length: length}, (_,j) => j);
+    const sortState:SortState = {lo: lo, hi: hi, i: i, j: j, pivIdx: pivIdx, pivStack: Array<[number,number]>(), sortArray: sortArray, phase:SortPhase.LEFT };
     return {newSortState:sortState, left:pivIdx, right:i};
 }
 
@@ -66,16 +66,15 @@ export function storeSortState(sortState:QuicksortRet) {
  * @returns New sort state with updated hi and lo
  */
 function quicksortOuterStart(sortState: SortState): SortState {
-    if (sortState.pivStack.length < 1) {
-        // Return a SortState with DONE phase
-        let newSortState: SortState = { ...sortState, phase: SortPhase.DONE };
-        return newSortState;
+    let newStack = [...sortState.pivStack];
+    while (newStack.length > 0) {
+        const [lo,hi] = newStack.pop()!;
+        if (lo < hi) {
+            const newSortState: SortState = { ...sortState, pivStack:newStack, lo:lo, hi:hi };
+            return newSortState;
+        }
     }
-    let [lo, hi] = sortState.pivStack.slice(-2, -1);
-    let newStack = sortState.pivStack.splice(-2);
-    // Return new sortState with hi and lo popped
-    let newSortState: SortState = { ...sortState, hi: hi, lo: lo, pivStack: newStack };
-    return newSortState;
+    return { ...sortState, phase:SortPhase.DONE, lo: -1, hi: -1,  pivStack:newStack };
 }
 
 /**
@@ -84,19 +83,12 @@ function quicksortOuterStart(sortState: SortState): SortState {
  * @returns New state with updated stack
  */
 function quicksortOuterEnd(sortState: SortState): SortState {
-    let midIdx = sortState.j;
-    let stack = [...sortState.pivStack];
-    if (midIdx - 1 > sortState.lo) {
-        stack.push(sortState.lo);
-        stack.push(midIdx - 1);
-    }
-    if (midIdx + 1 < sortState.hi) {
-        stack.push(midIdx + 1);
-        stack.push(sortState.hi);
-    }
-    // Create new SortState with stack
-    let newSortState: SortState = { ...sortState, pivStack: stack };
-    return newSortState;
+    const midIdx = sortState.j;
+    let newStack = [...sortState.pivStack];
+    newStack.push([sortState.lo,midIdx]);
+    newStack.push([midIdx + 1,sortState.hi]);
+    // Create new SortState with new stack
+    return { ...sortState, pivStack: newStack };
 }
 
 /**
@@ -106,15 +98,64 @@ function quicksortOuterEnd(sortState: SortState): SortState {
  * @returns New sort state based on isPivot
  */
 function quicksortStepLeft(sortState: SortState, isPivot: boolean): QuicksortRet {
-    if (isPivot) {
+    if(isPivot) {
         // Set sortState.i += 1 in new obj
         let newSortState: SortState = { ...sortState, i: sortState.i + 1 };
-        return { newSortState: newSortState, left: newSortState.pivIdx, right: newSortState.i };
+        if(newSortState.i < newSortState.pivIdx)
+            return { newSortState: newSortState, left: newSortState.pivIdx, right: newSortState.i };
+        sortState = newSortState;
     }
     // Set sortState.phase = SortPhase.RIGHT in new obj
-    let newSortState: SortState = { ...sortState, j: sortState.j, phase: SortPhase.RIGHT };
-    return { newSortState: newSortState, left: newSortState.pivIdx, right: newSortState.i };
+    let newSortState: SortState = { ...sortState, phase: SortPhase.RIGHT, j: sortState.j - 1};
+    if(newSortState.j <= newSortState.pivIdx) {
+        if(newSortState.i >= newSortState.j)
+            return quicksortStepRightOuter(newSortState);
+        else
+            return quicksortStepRightSwap(newSortState);
+    }
+    return { newSortState: newSortState, left: newSortState.pivIdx, right: newSortState.j };
 };
+
+function quicksortStepRightOuter(sortState:SortState) {
+    let newSortState_outerEnd = quicksortOuterEnd(sortState);
+    let newSortState_outer = quicksortOuterStart(newSortState_outerEnd);
+    if (newSortState_outer.phase === SortPhase.DONE) {
+        return { newSortState: newSortState_outer, left: -1, right: -1 };
+    }
+    // Calculate pivot, set i and j, set new phase
+    const hi = newSortState_outer.hi;
+    const lo = newSortState_outer.lo;
+    const newPivIdx = Math.floor((hi + lo) / 2);
+    if (newPivIdx > lo) {
+        const newSortState: SortState = {
+            ...newSortState_outer,
+            i: lo, j: hi + 1,
+            pivIdx: newPivIdx, phase: SortPhase.LEFT
+        };
+        return { newSortState: newSortState, left: newSortState.pivIdx, right: newSortState.i };
+    }
+    const newSortState: SortState = {
+        ...newSortState_outer,
+        i: lo, j: hi, pivIdx: newPivIdx, phase: SortPhase.RIGHT
+    }
+    return { newSortState: newSortState, left:newSortState.pivIdx, right: newSortState.j };
+}
+
+function quicksortStepRightSwap(sortState:SortState) {
+    // Swap sortState.sortArray indices i and j in new obj and continue on the left
+    const [i, j] = [sortState.i, sortState.j];
+    const newSortArray = [...sortState.sortArray];
+    newSortArray[i] = sortState.sortArray[j];
+    newSortArray[j] = sortState.sortArray[i];
+    let newSortState: SortState = { ...sortState, i: i+1, j: j, sortArray: newSortArray, phase: SortPhase.LEFT };
+    if (newSortState.i < newSortState.pivIdx)
+        return { newSortState: newSortState, left: newSortState.pivIdx, right: newSortState.i };
+    newSortState.j -= 1;
+    newSortState.phase = SortPhase.RIGHT;
+    if (newSortState.j > newSortState.pivIdx)
+        return { newSortState: newSortState, left: newSortState.pivIdx, right: newSortState.j };
+    return quicksortStepRightOuter(newSortState);
+}
 
 /**
  * Function to handle logic when iterating over the right index during quicksort partitioning.
@@ -126,32 +167,14 @@ function quicksortStepRight(sortState: SortState, isPivot: boolean): QuicksortRe
     if (!isPivot) {
         // Set sortState.j -= 1 in new obj
         let newSortState: SortState = { ...sortState, j: sortState.j - 1 };
-        return { newSortState: newSortState, left: newSortState.pivIdx, right: newSortState.j };
+        if(newSortState.j > newSortState.pivIdx)
+            return { newSortState: newSortState, left: newSortState.pivIdx, right: newSortState.j };
+        sortState = newSortState;
     }
     if (sortState.i >= sortState.j) {
-        let newSortState_outerEnd = quicksortOuterEnd(sortState);
-        if (newSortState_outerEnd.phase === SortPhase.DONE) {
-            return { newSortState: newSortState_outerEnd, left: -1, right: -1 };
-        }
-        let newSortState_outer = quicksortOuterStart(newSortState_outerEnd);
-        // Calculate pivot, set i and j, set new phase
-        let hi = newSortState_outer.hi;
-        let lo = newSortState_outer.lo;
-        let newPivIdx = Math.floor((hi - lo) / 2 + lo);
-        let newSortState: SortState = {
-            ...newSortState_outer,
-            i: lo, j: hi,
-            pivIdx: newPivIdx, phase: SortPhase.LEFT
-        };
-        return { newSortState: newSortState, left: newSortState.pivIdx, right: newSortState.i };
+        return quicksortStepRightOuter(sortState);
     }
-    // Swap sortState.sortArray indices i and j in new obj and continue on the left
-    let [i, j] = [sortState.i, sortState.j];
-    let newSortArray = [...sortState.sortArray];
-    newSortArray[i] = sortState.sortArray[j];
-    newSortArray[j] = sortState.sortArray[i];
-    let newSortState: SortState = { ...sortState, sortArray: newSortArray, phase: SortPhase.LEFT };
-    return { newSortState: newSortState, left: newSortState.pivIdx, right: newSortState.i };
+    return quicksortStepRightSwap(sortState);
 };
 
 /**
