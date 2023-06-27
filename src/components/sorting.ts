@@ -101,13 +101,13 @@ function quicksortStepLeft(sortState: SortState, isPivot: boolean): QuicksortRet
     if(isPivot) {
         // Set sortState.i += 1 in new obj
         let newSortState: SortState = { ...sortState, i: sortState.i + 1 };
-        if(newSortState.i < newSortState.pivIdx)
+        if(newSortState.i !== newSortState.pivIdx)
             return { newSortState: newSortState, left: newSortState.pivIdx, right: newSortState.i };
         sortState = newSortState;
     }
     // Set sortState.phase = SortPhase.RIGHT in new obj
     let newSortState: SortState = { ...sortState, phase: SortPhase.RIGHT, j: sortState.j - 1};
-    if(newSortState.j <= newSortState.pivIdx) {
+    if(newSortState.j === newSortState.pivIdx) {
         if(newSortState.i >= newSortState.j)
             return quicksortStepRightOuter(newSortState);
         else
@@ -147,12 +147,19 @@ function quicksortStepRightSwap(sortState:SortState) {
     const newSortArray = [...sortState.sortArray];
     newSortArray[i] = sortState.sortArray[j];
     newSortArray[j] = sortState.sortArray[i];
-    let newSortState: SortState = { ...sortState, i: i+1, j: j, sortArray: newSortArray, phase: SortPhase.LEFT };
-    if (newSortState.i < newSortState.pivIdx)
+    let newPivIdx = sortState.pivIdx;
+    if (i === sortState.pivIdx) {
+        newPivIdx = j;
+    } else if (j === sortState.pivIdx) {
+        newPivIdx = i;
+    }
+    let newSortState: SortState = { ...sortState, i: i+1, j: j, sortArray: newSortArray, phase: SortPhase.LEFT,
+    pivIdx: newPivIdx };
+    if (newSortState.i !== newSortState.pivIdx)
         return { newSortState: newSortState, left: newSortState.pivIdx, right: newSortState.i };
     newSortState.j -= 1;
     newSortState.phase = SortPhase.RIGHT;
-    if (newSortState.j > newSortState.pivIdx)
+    if (newSortState.j !== newSortState.pivIdx)
         return { newSortState: newSortState, left: newSortState.pivIdx, right: newSortState.j };
     return quicksortStepRightOuter(newSortState);
 }
@@ -167,7 +174,7 @@ function quicksortStepRight(sortState: SortState, isPivot: boolean): QuicksortRe
     if (!isPivot) {
         // Set sortState.j -= 1 in new obj
         let newSortState: SortState = { ...sortState, j: sortState.j - 1 };
-        if(newSortState.j > newSortState.pivIdx)
+        if(newSortState.j !== newSortState.pivIdx)
             return { newSortState: newSortState, left: newSortState.pivIdx, right: newSortState.j };
         sortState = newSortState;
     }
